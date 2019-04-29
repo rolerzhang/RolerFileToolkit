@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>RolerZhang</Authors>
+    <PackageId>Roler.Toolkit.File.Epub</PackageId>
+    <PackageTags>epub</PackageTags>
+    <Description>.NET Standard Class Library for Epub File. support EPUB 3.0</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/rolerzhang/RolerFileToolkit-epub</PackageProjectUrl>
+    <RepositoryUrl></RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="HttpUtility.cs" />
+  </ItemGroup>
+
+</Project>
