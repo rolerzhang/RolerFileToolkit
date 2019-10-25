@@ -29,7 +29,7 @@ namespace Roler.Toolkit.File.Epub.Engine
                     Namespace = xNamespace.NamespaceName
                 };
 
-                var xElement = document.Descendants(xNamespace + ROOTFILE).First();
+                var xElement = document.Descendants(xNamespace + ROOTFILE).FirstOrDefault();
                 if (xElement != null)
                 {
                     result.FullPath = xElement.Attribute(FULLPATH).Value;

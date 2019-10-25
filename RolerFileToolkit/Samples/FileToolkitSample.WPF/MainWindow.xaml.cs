@@ -2,6 +2,7 @@
 using System.Windows;
 using Microsoft.Win32;
 using Roler.Toolkit.File.Epub;
+using Roler.Toolkit.File.Mobi;
 
 namespace FileToolkitSample.WPF
 {
@@ -54,6 +55,26 @@ namespace FileToolkitSample.WPF
         {
             this.epubReader?.Dispose();
             this.fileStream?.Dispose();
+        }
+
+        private void OpenMobiButton_Click(object sender, RoutedEventArgs e)
+        {
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "mobi file|*.mobi"
+            };
+            if (openFileDialog.ShowDialog() == true)
+            {
+
+                var filePath = openFileDialog.FileName;
+                fileStream = File.OpenRead(filePath);
+                {
+                    using (var mobiReader = new MobiReader(fileStream))
+                    {
+                        var mobi = mobiReader.Read();
+                    }
+                }
+            }
         }
     }
 }

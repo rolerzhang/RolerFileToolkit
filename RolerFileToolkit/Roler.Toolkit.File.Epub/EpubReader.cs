@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Text.RegularExpressions;
 using Roler.Toolkit.File.Epub.Define;
 using Roler.Toolkit.File.Epub.Engine;
 using Roler.Toolkit.File.Epub.Entity;

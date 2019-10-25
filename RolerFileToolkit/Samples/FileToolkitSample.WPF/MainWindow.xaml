@@ -28,9 +28,16 @@
             </ScrollViewer>
         </Grid>
 
-        <Button Content="Open Epub"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Center"
-                Click="OpenEpubButton_Click"/>
+        <StackPanel HorizontalAlignment="Left"
+                    VerticalAlignment="Center">
+
+            <Button Content="Open Epub"
+                    Click="OpenEpubButton_Click"/>
+            
+            <Button Content="Open Mobi"
+                    Click="OpenMobiButton_Click"/>
+
+        </StackPanel>
+
     </Grid>
 </Window>

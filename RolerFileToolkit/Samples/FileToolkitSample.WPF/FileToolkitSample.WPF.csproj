@@ -99,6 +99,10 @@
       <Project>{c67b8f9f-1677-4ff2-bb7b-8cff9ce3b7b6}</Project>
       <Name>Roler.Toolkit.File.Epub</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Roler.Toolkit.File.Mobi\Roler.Toolkit.File.Mobi.csproj">
+      <Project>{512EC6EB-7CB3-4372-8954-CF5E578E5AEE}</Project>
+      <Name>Roler.Toolkit.File.Mobi</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
