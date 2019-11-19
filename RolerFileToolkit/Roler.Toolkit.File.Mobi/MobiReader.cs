@@ -42,19 +42,21 @@ namespace Roler.Toolkit.File.Mobi
             PalmDOCHeader palmDOCHeader = null;
             if (palmDB.RecordInfoList.Any())
             {
-                var offset = palmDB.RecordInfoList.First().Offset;
-                palmDOCHeader = PalmDOCHeaderEngine.Read(this._stream, offset) ?? throw new InvalidDataException("file can not open.");
+                var startOffset = palmDB.RecordInfoList.First().Offset;
+                palmDOCHeader = PalmDOCHeaderEngine.Read(this._stream, startOffset) ?? throw new InvalidDataException("file can not open.");
             }
 
-            if (this._stream.TryReadString(4, out string identifier))
-            { 
-
+            var offset = this._stream.Position;
+            if (MobiHeaderEngine.TryRead(this._stream, offset, out MobiHeader mobiHeader))
+            {
+                offset = this._stream.Position;
             }
 
             return new Structure
             {
                 PalmDB = palmDB,
                 PalmDOCHeader = palmDOCHeader,
+                MobiHeader = mobiHeader,
             };
         }
 
