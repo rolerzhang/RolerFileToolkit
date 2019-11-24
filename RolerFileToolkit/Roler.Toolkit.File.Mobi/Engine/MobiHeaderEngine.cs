@@ -167,6 +167,9 @@ namespace Roler.Toolkit.File.Mobi.Engine
             {
                 result.DRMFlags = drmFlags;
             }
+
+            stream.Seek(8, SeekOrigin.Current); //skip 8 bytes, Bytes to the end of the MOBI header, including the following if the header length >= 228 (244 from start of record). Use 0x0000000000000000.
+
             if (stream.TryReadUshort(out ushort firstContentRecordNumber))
             {
                 result.FirstContentRecordNumber = firstContentRecordNumber;
@@ -201,7 +204,7 @@ namespace Roler.Toolkit.File.Mobi.Engine
                 result.INDXRecordOffset = iNDXRecordOffset;
             }
 
-            stream.Seek(24, SeekOrigin.Current); //skip 0xFFFFFFFF , 0xFFFFFFFF , 0xFFFFFFFF , 0xFFFFFFFF , 0xFFFFFFFF , 0x00000000,
+            stream.Seek(offset + length, SeekOrigin.Begin); //skip to end.
 
             return result;
         }
