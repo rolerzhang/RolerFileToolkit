@@ -7,5 +7,6 @@ namespace Roler.Toolkit.File.Mobi
         public PalmDB PalmDB { get; set; }
         public PalmDOCHeader PalmDOCHeader { get; set; }
         public MobiHeader MobiHeader { get; set; }
+        public ExthHeader ExthHeader { get; set; }
     }
 }

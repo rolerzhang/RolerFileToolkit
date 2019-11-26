@@ -5,7 +5,7 @@ namespace Roler.Toolkit.File.Mobi.Entity
     public class MobiHeader
     {
         /// <summary>
-        /// Gets or sets the identifier, always 'M O B I'.
+        /// Gets or sets the identifier, always 'MOBI'.
         /// </summary>
         public string Identifier { get; set; }
 

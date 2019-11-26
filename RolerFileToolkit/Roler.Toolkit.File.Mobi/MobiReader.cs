@@ -38,26 +38,29 @@ namespace Roler.Toolkit.File.Mobi
 
         private Structure ReadStructure()
         {
+            var result = new Structure();
             var palmDB = PalmDBEngine.Read(this._stream) ?? throw new InvalidDataException("file can not open.");
-            PalmDOCHeader palmDOCHeader = null;
+            result.PalmDB = palmDB;
             if (palmDB.RecordInfoList.Any())
             {
-                var startOffset = palmDB.RecordInfoList.First().Offset;
-                palmDOCHeader = PalmDOCHeaderEngine.Read(this._stream, startOffset) ?? throw new InvalidDataException("file can not open.");
-            }
+                long offset = palmDB.RecordInfoList.First().Offset;
+                result.PalmDOCHeader = PalmDOCHeaderEngine.Read(this._stream, offset) ?? throw new InvalidDataException("file can not open.");
 
-            var offset = this._stream.Position;
-            if (MobiHeaderEngine.TryRead(this._stream, offset, out MobiHeader mobiHeader))
-            {
                 offset = this._stream.Position;
+                if (MobiHeaderEngine.TryRead(this._stream, offset, out MobiHeader mobiHeader))
+                {
+                    result.MobiHeader = mobiHeader;
+                    offset = this._stream.Position;
+                }
+                if (ExthHeaderEngine.TryRead(this._stream, offset, out ExthHeader exthHeader))
+                {
+                    result.ExthHeader = exthHeader;
+                    offset = this._stream.Position;
+                }
             }
 
-            return new Structure
-            {
-                PalmDB = palmDB,
-                PalmDOCHeader = palmDOCHeader,
-                MobiHeader = mobiHeader,
-            };
+
+            return result;
         }
 
         #endregion
