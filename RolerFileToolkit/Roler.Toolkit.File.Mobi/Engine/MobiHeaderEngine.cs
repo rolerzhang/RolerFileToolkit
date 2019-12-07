@@ -14,6 +14,7 @@ namespace Roler.Toolkit.File.Mobi.Engine
 
         public static bool TryRead(Stream stream, long offset, out MobiHeader mobiHeader)
         {
+            bool result = false;
             mobiHeader = null;
             stream.Seek(offset, SeekOrigin.Begin);
             if (stream.TryReadString(4, out string identifier))
@@ -21,11 +22,16 @@ namespace Roler.Toolkit.File.Mobi.Engine
                 if (string.Equals(Identifier, identifier, System.StringComparison.OrdinalIgnoreCase))
                 {
                     mobiHeader = Read(stream, offset);
-                    return true;
+                    result = true;
                 }
             }
 
-            return false;
+            if (!result)
+            {
+                stream.Seek(offset, SeekOrigin.Begin);
+            }
+
+            return result;
         }
 
         public static MobiHeader Read(Stream stream, long offset)

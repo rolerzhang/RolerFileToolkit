@@ -16,5 +16,11 @@
         /// Gets or sets the Data of the EXTH record.
         /// </summary>
         public string Data { get; set; }
+
+        public override string ToString()
+        {
+            return $"{this.Type} : {this.Data}";
+        }
+
     }
 }

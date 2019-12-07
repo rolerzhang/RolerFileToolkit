@@ -53,6 +53,19 @@ namespace Roler.Toolkit.File.Mobi
             return false;
         }
 
+        public static void Skip(this Stream stream)
+        {
+            int b;
+            do
+            {
+                b = stream.ReadByte();
+            } while (b == 0);
+            if (b > 0)
+            {
+                stream.Seek(stream.Position - 1, SeekOrigin.Begin);
+            }
+        }
+
         public static ushort ToUInt16(this byte[] bytes)
         {
             if (bytes.Length == 0)

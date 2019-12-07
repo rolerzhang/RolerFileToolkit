@@ -43,22 +43,33 @@ namespace Roler.Toolkit.File.Mobi
             result.PalmDB = palmDB;
             if (palmDB.RecordInfoList.Any())
             {
-                long offset = palmDB.RecordInfoList.First().Offset;
-                result.PalmDOCHeader = PalmDOCHeaderEngine.Read(this._stream, offset) ?? throw new InvalidDataException("file can not open.");
+                long firstRecordOffset = palmDB.RecordInfoList.First().Offset;
+                result.PalmDOCHeader = PalmDOCHeaderEngine.Read(this._stream, firstRecordOffset) ?? throw new InvalidDataException("invalid file! missing part:PalmDOC Header.");
 
-                offset = this._stream.Position;
-                if (MobiHeaderEngine.TryRead(this._stream, offset, out MobiHeader mobiHeader))
+                if (MobiHeaderEngine.TryRead(this._stream, this._stream.Position, out MobiHeader mobiHeader))
                 {
                     result.MobiHeader = mobiHeader;
-                    offset = this._stream.Position;
                 }
-                if (ExthHeaderEngine.TryRead(this._stream, offset, out ExthHeader exthHeader))
+                else
+                {
+                    throw new InvalidDataException("invalid file! missing part:MOBI Header.");
+                }
+
+                if (ExthHeaderEngine.TryRead(this._stream, this._stream.Position, out ExthHeader exthHeader))
                 {
                     result.ExthHeader = exthHeader;
-                    offset = this._stream.Position;
+                }
+
+                if (mobiHeader.FullNameLength > 0)
+                {
+                    long fullNameOffset = firstRecordOffset + mobiHeader.FullNameOffset;
+                    this._stream.Seek(fullNameOffset, SeekOrigin.Begin);
+                    if (this._stream.TryReadString((int)mobiHeader.FullNameLength, out string fullName))
+                    {
+                        result.FullName = fullName;
+                    }
                 }
             }
-
 
             return result;
         }

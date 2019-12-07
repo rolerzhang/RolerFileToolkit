@@ -8,5 +8,6 @@ namespace Roler.Toolkit.File.Mobi
         public PalmDOCHeader PalmDOCHeader { get; set; }
         public MobiHeader MobiHeader { get; set; }
         public ExthHeader ExthHeader { get; set; }
+        public string FullName { get; set; }
     }
 }

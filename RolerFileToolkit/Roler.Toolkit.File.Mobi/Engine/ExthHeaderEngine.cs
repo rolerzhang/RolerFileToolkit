@@ -14,6 +14,7 @@ namespace Roler.Toolkit.File.Mobi.Engine
 
         public static bool TryRead(Stream stream, long offset, out ExthHeader exthHeader)
         {
+            bool result = false;
             exthHeader = null;
             stream.Seek(offset, SeekOrigin.Begin);
             if (stream.TryReadString(4, out string identifier))
@@ -21,11 +22,16 @@ namespace Roler.Toolkit.File.Mobi.Engine
                 if (string.Equals(Identifier, identifier, System.StringComparison.OrdinalIgnoreCase))
                 {
                     exthHeader = Read(stream, offset);
-                    return true;
+                    result = true;
                 }
             }
 
-            return false;
+            if (!result)
+            {
+                stream.Seek(offset, SeekOrigin.Begin);
+            }
+
+            return result;
         }
 
         public static ExthHeader Read(Stream stream, long offset)
@@ -54,7 +60,8 @@ namespace Roler.Toolkit.File.Mobi.Engine
                 }
             }
 
-            stream.Seek(offset + length, SeekOrigin.Begin); //skip to end.
+            uint padding = (4 - length % 4) % 4;
+            stream.Seek(offset + length + padding, SeekOrigin.Begin); //skip to end, included padding
 
             return result;
         }
