@@ -17,13 +17,10 @@ namespace Roler.Toolkit.File.Mobi.Engine
             bool result = false;
             mobiHeader = null;
             stream.Seek(offset, SeekOrigin.Begin);
-            if (stream.TryReadString(4, out string identifier))
+            if (stream.CheckStart(4, Identifier))
             {
-                if (string.Equals(Identifier, identifier, System.StringComparison.OrdinalIgnoreCase))
-                {
-                    mobiHeader = Read(stream, offset);
-                    result = true;
-                }
+                mobiHeader = Read(stream, offset);
+                result = true;
             }
 
             if (!result)
@@ -176,27 +173,27 @@ namespace Roler.Toolkit.File.Mobi.Engine
 
             stream.Seek(8, SeekOrigin.Current); //skip 8 bytes, Bytes to the end of the MOBI header, including the following if the header length >= 228 (244 from start of record). Use 0x0000000000000000.
 
-            if (stream.TryReadUshort(out ushort firstContentRecordNumber))
+            if (stream.TryReadUshort(out ushort firstContentRecordOffset))
             {
-                result.FirstContentRecordNumber = firstContentRecordNumber;
+                result.FirstContentRecordOffset = firstContentRecordOffset;
             }
-            if (stream.TryReadUshort(out ushort lastContentRecordNumber))
+            if (stream.TryReadUshort(out ushort lastContentRecordOffset))
             {
-                result.LastContentRecordNumber = lastContentRecordNumber;
+                result.LastContentRecordOffset = lastContentRecordOffset;
             }
 
             stream.Seek(4, SeekOrigin.Current); //skip 4 bytes, 0x00000001. 
 
-            if (stream.TryReadUint(out uint fcisRecordNumber))
+            if (stream.TryReadUint(out uint fcisRecordOffset))
             {
-                result.FCISRecordNumber = fcisRecordNumber;
+                result.FCISRecordOffset = fcisRecordOffset;
             }
 
             stream.Seek(4, SeekOrigin.Current); //skip 4 bytes, 0x00000001.
 
-            if (stream.TryReadUint(out uint flisRecordNumber))
+            if (stream.TryReadUint(out uint flisRecordOffset))
             {
-                result.FLISRecordNumber = flisRecordNumber;
+                result.FLISRecordOffset = flisRecordOffset;
             }
 
             stream.Seek(28, SeekOrigin.Current); //skip 0x00000001, 0x0000000000000000, 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF,

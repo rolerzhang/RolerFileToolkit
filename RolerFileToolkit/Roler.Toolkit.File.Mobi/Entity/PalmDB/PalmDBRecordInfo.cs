@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Roler.Toolkit.File.Mobi.Entity
+﻿namespace Roler.Toolkit.File.Mobi.Entity
 {
     public class PalmDBRecordInfo
     {
@@ -17,5 +13,10 @@ namespace Roler.Toolkit.File.Mobi.Entity
         /// Gets or sets the unique ID for this record. Often just a sequential count from 0.
         /// </summary>
         public uint UniqueID { get; set; }
+
+        public override string ToString()
+        {
+            return $"{UniqueID}, {this.Attribute} , {Offset}";
+        }
     }
 }

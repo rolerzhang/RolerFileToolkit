@@ -151,16 +151,16 @@ namespace Roler.Toolkit.File.Mobi.Entity
         /// <summary>
         /// Gets or sets the number of first text record. Normally 1.
         /// </summary>
-        public ushort FirstContentRecordNumber { get; set; }
+        public ushort FirstContentRecordOffset { get; set; }
 
         /// <summary>
         /// Gets or sets the number of last image record or number of last text record if it contains no images. Includes Image, DATP, HUFF, DRM. .
         /// </summary>
-        public ushort LastContentRecordNumber { get; set; }
+        public ushort LastContentRecordOffset { get; set; }
 
-        public uint FCISRecordNumber { get; set; }
+        public uint FCISRecordOffset { get; set; }
 
-        public uint FLISRecordNumber { get; set; }
+        public uint FLISRecordOffset { get; set; }
 
         public uint ExtraRecordDataFlags { get; set; }
 

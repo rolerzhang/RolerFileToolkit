@@ -69,14 +69,20 @@ namespace Roler.Toolkit.File.Mobi
                         result.FullName = fullName;
                     }
                 }
+
+                if (mobiHeader.INDXRecordOffset > 0 &&
+                    mobiHeader.INDXRecordOffset < palmDB.RecordInfoList.Count &&
+                    IndxHeaderEngine.TryRead(this._stream, palmDB.RecordInfoList[(int)mobiHeader.INDXRecordOffset].Offset, out IndxHeader indxHeader))
+                {
+                    result.IndxHeader = indxHeader;
+                }
+
             }
 
             return result;
         }
 
         #endregion
-
-
 
         #region Disposable
 

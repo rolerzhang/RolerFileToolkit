@@ -7,7 +7,6 @@ namespace Roler.Toolkit.File.Mobi.Engine
     {
         #region Const String
 
-
         #endregion
 
         public static PalmDOCHeader Read(Stream stream, long offset)

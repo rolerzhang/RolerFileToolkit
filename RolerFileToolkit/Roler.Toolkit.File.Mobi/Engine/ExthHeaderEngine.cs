@@ -17,13 +17,10 @@ namespace Roler.Toolkit.File.Mobi.Engine
             bool result = false;
             exthHeader = null;
             stream.Seek(offset, SeekOrigin.Begin);
-            if (stream.TryReadString(4, out string identifier))
+            if (stream.CheckStart(4, Identifier))
             {
-                if (string.Equals(Identifier, identifier, System.StringComparison.OrdinalIgnoreCase))
-                {
-                    exthHeader = Read(stream, offset);
-                    result = true;
-                }
+                exthHeader = Read(stream, offset);
+                result = true;
             }
 
             if (!result)

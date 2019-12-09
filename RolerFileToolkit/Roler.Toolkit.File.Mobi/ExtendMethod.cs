@@ -66,6 +66,15 @@ namespace Roler.Toolkit.File.Mobi
             }
         }
 
+        public static bool CheckStart(this Stream stream, int length, string value)
+        {
+            if (stream.TryReadString(length, out string result))
+            {
+                return string.Equals(result, value, StringComparison.OrdinalIgnoreCase);
+            }
+            return false;
+        }
+
         public static ushort ToUInt16(this byte[] bytes)
         {
             if (bytes.Length == 0)
