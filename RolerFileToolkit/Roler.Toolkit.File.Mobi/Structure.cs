@@ -11,5 +11,7 @@ namespace Roler.Toolkit.File.Mobi
         public MobiHeader MobiHeader { get; set; }
         public ExthHeader ExthHeader { get; set; }
         public IndxHeader IndxHeader { get; set; }
+        public FlisRecord FlisRecord { get; set; }
+        public FcisRecord FcisRecord { get; set; }
     }
 }

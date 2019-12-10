@@ -70,12 +70,27 @@ namespace Roler.Toolkit.File.Mobi
                     }
                 }
 
-                if (mobiHeader.INDXRecordOffset > 0 &&
+                if (mobiHeader.INDXRecordOffset != MobiHeaderEngine.UnavailableIndex &&
                     mobiHeader.INDXRecordOffset < palmDB.RecordInfoList.Count &&
                     IndxHeaderEngine.TryRead(this._stream, palmDB.RecordInfoList[(int)mobiHeader.INDXRecordOffset].Offset, out IndxHeader indxHeader))
                 {
                     result.IndxHeader = indxHeader;
                 }
+
+                if (mobiHeader.FLISRecordOffset != MobiHeaderEngine.UnavailableIndex &&
+                    mobiHeader.FLISRecordOffset < palmDB.RecordInfoList.Count &&
+                    RecordEngine.TryReadFlisRecord(this._stream, palmDB.RecordInfoList[(int)mobiHeader.FLISRecordOffset].Offset, out FlisRecord flisRecord))
+                {
+                    result.FlisRecord = flisRecord;
+                }
+
+                if (mobiHeader.FCISRecordOffset != MobiHeaderEngine.UnavailableIndex &&
+                    mobiHeader.FCISRecordOffset < palmDB.RecordInfoList.Count &&
+                    RecordEngine.TryReadFcisRecord(this._stream, palmDB.RecordInfoList[(int)mobiHeader.FCISRecordOffset].Offset, out FcisRecord fcisRecord))
+                {
+                    result.FcisRecord = fcisRecord;
+                }
+
 
             }
 
