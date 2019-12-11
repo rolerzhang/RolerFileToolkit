@@ -79,6 +79,7 @@ namespace Roler.Toolkit.File.Mobi.Engine
             }
 
             stream.Seek(8, SeekOrigin.Current); //skip 8 unknown bytes.
+            stream.Seek(offset + length, SeekOrigin.Begin); //skip to end.
 
             return result;
         }

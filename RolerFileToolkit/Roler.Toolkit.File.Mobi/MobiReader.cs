@@ -91,7 +91,6 @@ namespace Roler.Toolkit.File.Mobi
                     result.FcisRecord = fcisRecord;
                 }
 
-
             }
 
             return result;
