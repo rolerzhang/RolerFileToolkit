@@ -6,7 +6,7 @@ namespace Roler.Toolkit.File.Epub
     {
         public Structure Structure { get; set; }
 
-        public string Contributer { get; set; }
+        public string Contributor { get; set; }
         public string Coverage { get; set; }
         public string Creator { get; set; }
         public string Date { get; set; }

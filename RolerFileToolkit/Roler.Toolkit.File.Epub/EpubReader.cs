@@ -39,7 +39,7 @@ namespace Roler.Toolkit.File.Epub
             var result = new Epub
             {
                 Structure = structure,
-                Contributer = String.Join(SEPARATOR, metadata.Contributors.Select(p => p.Value)),
+                Contributor = String.Join(SEPARATOR, metadata.Contributors.Select(p => p.Value)),
                 Coverage = String.Join(SEPARATOR, metadata.Coverages.Select(p => p.Value)),
                 Creator = String.Join(SEPARATOR, metadata.Creators.Select(p => p.Value)),
                 Date = metadata.Date?.Value,

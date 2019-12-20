@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
+using Roler.Toolkit.File.Mobi.Compression;
 using Roler.Toolkit.File.Mobi.Engine;
 using Roler.Toolkit.File.Mobi.Entity;
 
@@ -10,6 +13,7 @@ namespace Roler.Toolkit.File.Mobi
     {
         private bool _disposed;
         private readonly Stream _stream;
+        private readonly IList<PalmDBRecord> _palmDBRecordList = new List<PalmDBRecord>();
 
         public MobiReader(Stream stream)
         {
@@ -29,9 +33,45 @@ namespace Roler.Toolkit.File.Mobi
             var result = new Mobi
             {
                 Structure = structure,
+                Title = structure.FullName,
             };
 
+            if (structure.ExthHeader != null)
+            {
+                var exthHeader = structure.ExthHeader;
+                result.Creator = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Author)?.Data;
+                result.Publisher = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Publisher)?.Data;
+                result.Description = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Description)?.Data;
+                result.Subject = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Subject)?.Data;
+                result.Date = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.PublishingDate)?.Data;
+                result.Contributor = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Contributor)?.Data;
+                result.Rights = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Rights)?.Data;
+                result.Type = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Type)?.Data;
+                result.Source = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Source)?.Data;
+                result.Language = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Language)?.Data;
+            }
+
+            this.RefreshPalmDBRecordList(structure.PalmDB.RecordInfoList);
+
+            result.Text = this.ReadText(structure);
+
             return result;
+        }
+
+        private void RefreshPalmDBRecordList(IList<PalmDBRecordInfo> palmDBRecordInfoList)
+        {
+            this._palmDBRecordList.Clear();
+            PalmDBRecord lastRecord = null;
+            foreach (var palmDBRecordInfo in palmDBRecordInfoList)
+            {
+                var record = new PalmDBRecord(palmDBRecordInfo);
+                if (lastRecord != null)
+                {
+                    lastRecord.Length = (int)(palmDBRecordInfo.Offset - lastRecord.Info.Offset);
+                }
+                this._palmDBRecordList.Add(record);
+                lastRecord = record;
+            }
         }
 
         #region Structure
@@ -93,6 +133,84 @@ namespace Roler.Toolkit.File.Mobi
 
             }
 
+            return result;
+        }
+
+        #endregion
+
+        #region Text
+
+        private string ReadText(Structure structure)
+        {
+            var stringBuilder = new StringBuilder();
+            ICompression compression = null;
+            Encoding encoding = Encoding.UTF8;
+
+            switch (structure.PalmDOCHeader.Compression)
+            {
+                case CompressionType.PalmDOC:
+                    {
+                        compression = new PalmDocCompression();
+                    }
+                    break;
+                case CompressionType.HUFF_CDIC:
+                    {
+                        compression = CreateHuffCdicCompression(structure.MobiHeader);
+                        encoding = Encoding.ASCII;
+                    }
+                    break;
+                default: break;
+            }
+
+            for (ushort i = structure.MobiHeader.FirstContentRecordOffset; i < structure.MobiHeader.FirstNonBookIndex; i++)
+            {
+                var bytes = this.ReadPalmDBRecord(this._palmDBRecordList[i]);
+                if (compression != null)
+                {
+                    bytes = compression.Decompress(bytes);
+                }
+                var text = encoding.GetString(bytes);
+                stringBuilder.Append(text);
+            }
+
+            return stringBuilder.ToString();
+        }
+
+        private HuffCdicCompression CreateHuffCdicCompression(MobiHeader mobiHeader)
+        {
+            HuffCdicCompression result = null;
+            if (mobiHeader.HuffmanRecordOffset != MobiHeaderEngine.UnavailableIndex &&
+                mobiHeader.HuffmanRecordOffset < this._palmDBRecordList.Count)
+            {
+                var huffBytesData = this.ReadPalmDBRecord(this._palmDBRecordList[(int)mobiHeader.HuffmanRecordOffset]);
+                var huffData = new List<byte>(huffBytesData);
+
+                var cdicBytesData = this.ReadPalmDBRecord(this._palmDBRecordList[(int)mobiHeader.HuffmanRecordOffset + 1]);
+                var cdicData = new List<byte>(cdicBytesData);
+
+                var huffDicts = new List<IList<byte>>
+                {
+                    cdicData
+                };
+                for (int i = 2; i < mobiHeader.HuffmanRecordCount; i++)
+                {
+                    var recordBytes = this.ReadPalmDBRecord(this._palmDBRecordList[(int)mobiHeader.HuffmanRecordOffset + i]);
+                    huffDicts.Add(new List<byte>(recordBytes));
+                }
+
+                result = new HuffCdicCompression(huffData, cdicData, huffDicts)
+                {
+                    ExtraFlags = mobiHeader.ExtraRecordDataFlags
+                };
+            }
+            return result;
+        }
+
+        private byte[] ReadPalmDBRecord(PalmDBRecord palmDBRecord)
+        {
+            byte[] result = new byte[palmDBRecord.Length];
+            this._stream.Seek(palmDBRecord.Info.Offset, SeekOrigin.Begin);
+            this._stream.Read(result, 0, result.Length);
             return result;
         }
 
