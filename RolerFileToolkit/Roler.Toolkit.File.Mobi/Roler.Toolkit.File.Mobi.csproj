@@ -2,6 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>RolerZhang</Authors>
+    <Description>.NET Standard Class Library for Mobi File.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/rolerzhang/RolerFileToolkit</PackageProjectUrl>
+    <PackageTags>mobi</PackageTags>
   </PropertyGroup>
 
 </Project>
