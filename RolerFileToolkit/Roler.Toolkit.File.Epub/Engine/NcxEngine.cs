@@ -33,7 +33,7 @@ namespace Roler.Toolkit.File.Epub.Engine
             using (var streamReader = new StreamReader(stream))
             {
                 string xmlStr = streamReader.ReadToEnd();
-                var document = XElement.Parse(xmlStr);
+                var document = XElement.Parse(xmlStr.FixXml());
 
                 var xNamespace = document.GetDefaultNamespace();
                 result = ParseNcx(document) ?? throw new InvalidDataException("invalid data of ncx file: ncx");
