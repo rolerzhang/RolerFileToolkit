@@ -7,8 +7,9 @@
     <PackageTags>epub</PackageTags>
     <Description>.NET Standard Class Library for Epub File. support EPUB 3.0</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/rolerzhang/RolerFileToolkit-epub</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/rolerzhang/RolerFileToolkit</PackageProjectUrl>
     <RepositoryUrl></RepositoryUrl>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
