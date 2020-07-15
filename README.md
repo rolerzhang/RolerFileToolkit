@@ -1,6 +1,6 @@
 ## Build Status
 | Target | Branch |Recommended package version |
-| ------ | ------ | ------ | ------ |
+| ------ | ------ | ------ |
 | Roler.Toolkit.File.Epub | master | [1.0.1](https://www.nuget.org/packages/Roler.Toolkit.File.Epub) | 
 | Roler.Toolkit.File.Mobi | master | [1.0.1](https://www.nuget.org/packages/Roler.Toolkit.File.Mobi) |
 
