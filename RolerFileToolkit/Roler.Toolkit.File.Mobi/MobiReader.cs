@@ -142,7 +142,7 @@ namespace Roler.Toolkit.File.Mobi
 
         private string ReadText(Structure structure)
         {
-            var stringBuilder = new StringBuilder();
+            var decompressedByteList = new List<byte>();
             ICompression compression = null;
             Encoding encoding = Encoding.UTF8;
 
@@ -162,18 +162,18 @@ namespace Roler.Toolkit.File.Mobi
                 default: break;
             }
 
-            for (ushort i = structure.MobiHeader.FirstContentRecordOffset; i < structure.MobiHeader.FirstNonBookIndex; i++)
+            if (compression != null)
             {
-                var bytes = this.ReadPalmDBRecord(this._palmDBRecordList[i]);
-                if (compression != null)
+                long firstNonTextRecordIndex = this.FindFirstNonTextRecordIndex(structure.MobiHeader);
+                for (int i = structure.MobiHeader.FirstContentRecordOffset; i < firstNonTextRecordIndex; i++)
                 {
-                    bytes = compression.Decompress(bytes);
+                    var recordBytes = this.ReadPalmDBRecord(this._palmDBRecordList[i]);
+                    var decompressedBytes = compression.Decompress(recordBytes);
+                    decompressedByteList.AddRange(decompressedBytes);
                 }
-                var text = encoding.GetString(bytes);
-                stringBuilder.Append(text);
             }
 
-            return stringBuilder.ToString();
+            return encoding.GetString(decompressedByteList.ToArray());
         }
 
         private HuffCdicCompression CreateHuffCdicCompression(MobiHeader mobiHeader)
@@ -202,6 +202,24 @@ namespace Roler.Toolkit.File.Mobi
                 {
                     ExtraFlags = mobiHeader.ExtraRecordDataFlags
                 };
+            }
+            return result;
+        }
+
+        private long FindFirstNonTextRecordIndex(MobiHeader mobiHeader)
+        {
+            long result;
+            if (mobiHeader.FirstNonBookIndex != MobiHeaderEngine.UnavailableIndex &&
+                mobiHeader.FirstNonBookIndex < this._palmDBRecordList.Count)
+            {
+                result = mobiHeader.FirstNonBookIndex;
+            }
+            else
+            {
+                result = Math.Min(mobiHeader.LastContentRecordOffset, mobiHeader.INDXRecordOffset);
+                result = Math.Min(result, mobiHeader.FLISRecordOffset);
+                result = Math.Min(result, mobiHeader.FCISRecordOffset);
+                result = Math.Min(result, this._palmDBRecordList.Count);
             }
             return result;
         }

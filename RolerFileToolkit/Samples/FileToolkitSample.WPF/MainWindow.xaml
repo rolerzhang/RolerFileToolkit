@@ -24,7 +24,8 @@
             </ListView>
 
             <ScrollViewer Grid.Column="1">
-                <TextBlock x:Name="textBlock"/>
+                <TextBlock x:Name="textBlock"
+                           TextWrapping="Wrap"/>
             </ScrollViewer>
         </Grid>
 
@@ -35,6 +36,7 @@
                     Click="OpenEpubButton_Click"/>
             
             <Button Content="Open Mobi"
+                    Margin="0,10,0,0"
                     Click="OpenMobiButton_Click"/>
 
         </StackPanel>
