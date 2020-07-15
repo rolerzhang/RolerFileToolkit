@@ -1,4 +1,11 @@
-# Epub
+## Build Status
+| Target | Branch |Recommended package version |
+| ------ | ------ | ------ | ------ |
+| Roler.Toolkit.File.Epub | master | [1.0.1](https://www.nuget.org/packages/Roler.Toolkit.File.Epub) | 
+| Roler.Toolkit.File.Mobi | master | [1.0.1](https://www.nuget.org/packages/Roler.Toolkit.File.Mobi) |
+
+## Sample Code
+### Epub
 
 ```csharp
 using (var epubReader = new EpubReader(stream))
@@ -21,5 +28,23 @@ using (var epubReader = new EpubReader(stream))
 
         Stream coverStream = epubReader.ReadContentFile(cover.FilePath);    //read content file by file path.
     }
+}
+```
+
+### Mobi
+
+```csharp
+using (var mobiReader = new MobiReader(fileStream))
+{
+    var mobi = mobiReader.Read();
+
+    var creator = mobi.Creator;
+    var publisher = mobi.Publisher;
+    var description = mobi.Description;
+    //...
+
+    Structure structure = mobi.Structure;   //Structure inside mobi file.
+
+    string text = mobi.Text;    //full text content.
 }
 ```
