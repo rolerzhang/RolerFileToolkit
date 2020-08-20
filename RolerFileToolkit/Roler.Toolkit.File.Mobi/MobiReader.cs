@@ -22,7 +22,7 @@ namespace Roler.Toolkit.File.Mobi
 
         #region Methods
 
-        public Mobi Read()
+        public Mobi ReadWithoutText()
         {
             if (this._disposed)
             {
@@ -53,25 +53,92 @@ namespace Roler.Toolkit.File.Mobi
 
             this.RefreshPalmDBRecordList(structure.PalmDB.RecordInfoList);
 
-            result.Text = this.ReadText(structure);
+            return result;
+        }
+
+        public bool TryReadWithoutText(out Mobi mobi)
+        {
+            bool result;
+
+            try
+            {
+                mobi = this.ReadWithoutText();
+                result = true;
+            }
+            catch (Exception)
+            {
+                mobi = null;
+                result = false;
+            }
 
             return result;
         }
 
-        private void RefreshPalmDBRecordList(IList<PalmDBRecordInfo> palmDBRecordInfoList)
+        public Mobi Read()
         {
-            this._palmDBRecordList.Clear();
-            PalmDBRecord lastRecord = null;
-            foreach (var palmDBRecordInfo in palmDBRecordInfoList)
+            var result = this.ReadWithoutText();
+            result.Text = this.ReadText(result.Structure);
+
+            return result;
+        }
+
+        public bool TryRead(out Mobi mobi)
+        {
+            bool result;
+
+            try
             {
-                var record = new PalmDBRecord(palmDBRecordInfo);
-                if (lastRecord != null)
-                {
-                    lastRecord.Length = (int)(palmDBRecordInfo.Offset - lastRecord.Info.Offset);
-                }
-                this._palmDBRecordList.Add(record);
-                lastRecord = record;
+                mobi = this.Read();
+                result = true;
             }
+            catch (Exception)
+            {
+                mobi = null;
+                result = false;
+            }
+
+            return result;
+        }
+
+        public string ReadText(Structure structure)
+        {
+            if (this._disposed)
+            {
+                throw new ObjectDisposedException("stream");
+            }
+
+            var decompressedByteList = new List<byte>();
+            ICompression compression = null;
+            Encoding encoding = Encoding.UTF8;
+
+            switch (structure.PalmDOCHeader.Compression)
+            {
+                case CompressionType.PalmDOC:
+                    {
+                        compression = new PalmDocCompression();
+                    }
+                    break;
+                case CompressionType.HUFF_CDIC:
+                    {
+                        compression = CreateHuffCdicCompression(structure.MobiHeader);
+                        encoding = Encoding.ASCII;
+                    }
+                    break;
+                default: break;
+            }
+
+            if (compression != null)
+            {
+                long firstNonTextRecordIndex = this.FindFirstNonTextRecordIndex(structure.MobiHeader);
+                for (int i = structure.MobiHeader.FirstContentRecordOffset; i < firstNonTextRecordIndex; i++)
+                {
+                    var recordBytes = this.ReadPalmDBRecord(this._palmDBRecordList[i]);
+                    var decompressedBytes = compression.Decompress(recordBytes);
+                    decompressedByteList.AddRange(decompressedBytes);
+                }
+            }
+
+            return encoding.GetString(decompressedByteList.ToArray());
         }
 
         #region Structure
@@ -140,40 +207,20 @@ namespace Roler.Toolkit.File.Mobi
 
         #region Text
 
-        private string ReadText(Structure structure)
+        private void RefreshPalmDBRecordList(IList<PalmDBRecordInfo> palmDBRecordInfoList)
         {
-            var decompressedByteList = new List<byte>();
-            ICompression compression = null;
-            Encoding encoding = Encoding.UTF8;
-
-            switch (structure.PalmDOCHeader.Compression)
+            this._palmDBRecordList.Clear();
+            PalmDBRecord lastRecord = null;
+            foreach (var palmDBRecordInfo in palmDBRecordInfoList)
             {
-                case CompressionType.PalmDOC:
-                    {
-                        compression = new PalmDocCompression();
-                    }
-                    break;
-                case CompressionType.HUFF_CDIC:
-                    {
-                        compression = CreateHuffCdicCompression(structure.MobiHeader);
-                        encoding = Encoding.ASCII;
-                    }
-                    break;
-                default: break;
-            }
-
-            if (compression != null)
-            {
-                long firstNonTextRecordIndex = this.FindFirstNonTextRecordIndex(structure.MobiHeader);
-                for (int i = structure.MobiHeader.FirstContentRecordOffset; i < firstNonTextRecordIndex; i++)
+                var record = new PalmDBRecord(palmDBRecordInfo);
+                if (lastRecord != null)
                 {
-                    var recordBytes = this.ReadPalmDBRecord(this._palmDBRecordList[i]);
-                    var decompressedBytes = compression.Decompress(recordBytes);
-                    decompressedByteList.AddRange(decompressedBytes);
+                    lastRecord.Length = (int)(palmDBRecordInfo.Offset - lastRecord.Info.Offset);
                 }
+                this._palmDBRecordList.Add(record);
+                lastRecord = record;
             }
-
-            return encoding.GetString(decompressedByteList.ToArray());
         }
 
         private HuffCdicCompression CreateHuffCdicCompression(MobiHeader mobiHeader)
