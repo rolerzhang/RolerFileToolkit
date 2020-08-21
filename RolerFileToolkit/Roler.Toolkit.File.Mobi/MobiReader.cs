@@ -39,16 +39,16 @@ namespace Roler.Toolkit.File.Mobi
             if (structure.ExthHeader != null)
             {
                 var exthHeader = structure.ExthHeader;
-                result.Creator = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Author)?.Data;
-                result.Publisher = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Publisher)?.Data;
-                result.Description = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Description)?.Data;
-                result.Subject = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Subject)?.Data;
-                result.Date = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.PublishingDate)?.Data;
-                result.Contributor = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Contributor)?.Data;
-                result.Rights = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Rights)?.Data;
-                result.Type = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Type)?.Data;
-                result.Source = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Source)?.Data;
-                result.Language = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Language)?.Data;
+                result.Creator = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Author)?.DataAsString();
+                result.Publisher = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Publisher)?.DataAsString();
+                result.Description = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Description)?.DataAsString();
+                result.Subject = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Subject)?.DataAsString();
+                result.Date = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.PublishingDate)?.DataAsString();
+                result.Contributor = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Contributor)?.DataAsString();
+                result.Rights = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Rights)?.DataAsString();
+                result.Type = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Type)?.DataAsString();
+                result.Source = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Source)?.DataAsString();
+                result.Language = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Language)?.DataAsString();
             }
 
             this.RefreshPalmDBRecordList(structure.PalmDB.RecordInfoList);

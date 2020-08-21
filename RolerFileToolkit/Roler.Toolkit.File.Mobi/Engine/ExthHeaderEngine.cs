@@ -84,7 +84,7 @@ namespace Roler.Toolkit.File.Mobi.Engine
             var dataBytesLength = (int)length - 8;
             if (dataBytesLength > 0)
             {
-                if (stream.TryReadString(dataBytesLength, out string data))
+                if (stream.TryReadBytes(dataBytesLength, out byte[] data))
                 {
                     result.Data = data;
                 }

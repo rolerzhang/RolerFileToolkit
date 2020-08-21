@@ -15,7 +15,16 @@
         /// <summary>
         /// Gets or sets the Data of the EXTH record.
         /// </summary>
-        public string Data { get; set; }
+        public byte[] Data { get; set; }
+
+        public string DataAsString()
+        {
+            if (this.Data != null)
+            {
+                return System.Text.Encoding.UTF8.GetString(this.Data);
+            }
+            return null;
+        }
 
         public override string ToString()
         {

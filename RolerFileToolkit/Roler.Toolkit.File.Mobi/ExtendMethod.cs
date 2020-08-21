@@ -5,51 +5,63 @@ namespace Roler.Toolkit.File.Mobi
 {
     internal static class ExtendMethod
     {
-        public static bool TryReadByte(this Stream stream, out byte result)
+        public static bool TryReadByte(this Stream stream, out byte outResult)
         {
             byte[] buffer = new byte[1];
             if (stream.Read(buffer, 0, 1) == 1)
             {
-                result = buffer[0];
+                outResult = buffer[0];
                 return true;
             }
-            result = 0;
+            outResult = 0;
             return false;
         }
 
-        public static bool TryReadUshort(this Stream stream, out ushort result)
-        {
-            byte[] buffer = new byte[2];
-            if (stream.Read(buffer, 0, 2) == 2)
-            {
-                result = buffer.ToUInt16();
-                return true;
-            }
-            result = 0;
-            return false;
-        }
-
-        public static bool TryReadUint(this Stream stream, out uint result)
-        {
-            byte[] buffer = new byte[4];
-            if (stream.Read(buffer, 0, 4) == 4)
-            {
-                result = buffer.ToUInt32();
-                return true;
-            }
-            result = 0;
-            return false;
-        }
-
-        public static bool TryReadString(this Stream stream, int length, out string result)
+        public static bool TryReadBytes(this Stream stream, int length, out byte[] outResult)
         {
             byte[] buffer = new byte[length];
             if (stream.Read(buffer, 0, length) == length)
             {
-                result = System.Text.Encoding.UTF8.GetString(buffer);
+                outResult = buffer;
                 return true;
             }
-            result = null;
+            outResult = null;
+            return false;
+        }
+
+        public static bool TryReadUshort(this Stream stream, out ushort outResult)
+        {
+            byte[] buffer = new byte[2];
+            if (stream.Read(buffer, 0, 2) == 2)
+            {
+                outResult = buffer.ToUInt16();
+                return true;
+            }
+            outResult = 0;
+            return false;
+        }
+
+        public static bool TryReadUint(this Stream stream, out uint outResult)
+        {
+            byte[] buffer = new byte[4];
+            if (stream.Read(buffer, 0, 4) == 4)
+            {
+                outResult = buffer.ToUInt32();
+                return true;
+            }
+            outResult = 0;
+            return false;
+        }
+
+        public static bool TryReadString(this Stream stream, int length, out string outResult)
+        {
+            byte[] buffer = new byte[length];
+            if (stream.Read(buffer, 0, length) == length)
+            {
+                outResult = System.Text.Encoding.UTF8.GetString(buffer);
+                return true;
+            }
+            outResult = null;
             return false;
         }
 
@@ -68,9 +80,9 @@ namespace Roler.Toolkit.File.Mobi
 
         public static bool CheckStart(this Stream stream, int length, string value)
         {
-            if (stream.TryReadString(length, out string result))
+            if (stream.TryReadString(length, out string start))
             {
-                return string.Equals(result, value, StringComparison.OrdinalIgnoreCase);
+                return string.Equals(start, value, StringComparison.OrdinalIgnoreCase);
             }
             return false;
         }
