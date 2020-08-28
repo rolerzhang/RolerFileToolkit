@@ -49,9 +49,12 @@ namespace Roler.Toolkit.File.Mobi
                 result.Type = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Type)?.DataAsString();
                 result.Source = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Source)?.DataAsString();
                 result.Language = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.Language)?.DataAsString();
+
             }
 
             this.RefreshPalmDBRecordList(structure.PalmDB.RecordInfoList);
+
+            result.Cover = this.ReadCover(structure);
 
             return result;
         }
@@ -106,28 +109,35 @@ namespace Roler.Toolkit.File.Mobi
             {
                 throw new ObjectDisposedException("stream");
             }
+            if (structure is null)
+            {
+                throw new ArgumentNullException(nameof(structure));
+            }
 
             var decompressedByteList = new List<byte>();
             ICompression compression = null;
             Encoding encoding = Encoding.UTF8;
 
-            switch (structure.PalmDOCHeader.Compression)
+            if (structure.PalmDOCHeader != null)
             {
-                case CompressionType.PalmDOC:
-                    {
-                        compression = new PalmDocCompression();
-                    }
-                    break;
-                case CompressionType.HUFF_CDIC:
-                    {
-                        compression = CreateHuffCdicCompression(structure.MobiHeader);
-                        encoding = Encoding.ASCII;
-                    }
-                    break;
-                default: break;
+                switch (structure.PalmDOCHeader.Compression)
+                {
+                    case CompressionType.PalmDOC:
+                        {
+                            compression = new PalmDocCompression();
+                        }
+                        break;
+                    case CompressionType.HUFF_CDIC:
+                        {
+                            compression = CreateHuffCdicCompression(structure.MobiHeader);
+                            encoding = Encoding.ASCII;
+                        }
+                        break;
+                    default: break;
+                }
             }
 
-            if (compression != null)
+            if (compression != null && structure.MobiHeader != null)
             {
                 long firstNonTextRecordIndex = this.FindFirstNonTextRecordIndex(structure.MobiHeader);
                 for (int i = structure.MobiHeader.FirstContentRecordOffset; i < firstNonTextRecordIndex; i++)
@@ -276,6 +286,37 @@ namespace Roler.Toolkit.File.Mobi
             byte[] result = new byte[palmDBRecord.Length];
             this._stream.Seek(palmDBRecord.Info.Offset, SeekOrigin.Begin);
             this._stream.Read(result, 0, result.Length);
+            return result;
+        }
+
+        #endregion
+
+        #region Cover
+
+        private byte[] ReadCover(Structure structure)
+        {
+            if (structure is null)
+            {
+                throw new ArgumentNullException(nameof(structure));
+            }
+
+            byte[] result = null;
+            if (structure.MobiHeader != null &&
+                structure.MobiHeader.FirstImageIndex != MobiHeaderEngine.UnavailableIndex &&
+                structure.MobiHeader.FirstImageIndex < this._palmDBRecordList.Count &&
+                structure.ExthHeader != null)
+            {
+                var exthHeader = structure.ExthHeader;
+                var coverOffsetBytes = exthHeader.RecordList.FirstOrDefault(p => p.Type == ExthRecordType.CoverOffset)?.Data;
+                if (coverOffsetBytes != null)
+                {
+                    var coverImageIndex = structure.MobiHeader.FirstImageIndex + coverOffsetBytes.ToUInt32();
+                    if (coverImageIndex < this._palmDBRecordList.Count)
+                    {
+                        result = this.ReadPalmDBRecord(this._palmDBRecordList[(int)coverImageIndex]);
+                    }
+                }
+            }
             return result;
         }
 
