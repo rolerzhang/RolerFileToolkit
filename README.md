@@ -2,7 +2,7 @@
 | Target | Branch |Recommended package version |
 | ------ | ------ | ------ |
 | Roler.Toolkit.File.Epub | master | [1.0.1](https://www.nuget.org/packages/Roler.Toolkit.File.Epub) | 
-| Roler.Toolkit.File.Mobi | master | [1.0.2](https://www.nuget.org/packages/Roler.Toolkit.File.Mobi) |
+| Roler.Toolkit.File.Mobi | master | [1.0.3](https://www.nuget.org/packages/Roler.Toolkit.File.Mobi) |
 
 ## Sample Code
 ### Epub
