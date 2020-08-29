@@ -41,7 +41,7 @@ namespace FileToolkitSample.WPF
 
         private void ListView_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
-            if (e.AddedItems.Count > 0 && e.AddedItems[0] is ContentFile contentFile)
+            if (e.AddedItems.Count > 0 && e.AddedItems[0] is Roler.Toolkit.File.Epub.ContentFile contentFile)
             {
                 if (this.epubReader != null)
                 {

@@ -151,6 +151,28 @@ namespace Roler.Toolkit.File.Mobi
             return encoding.GetString(decompressedByteList.ToArray());
         }
 
+        public Stream ReadContentFile(ContentFile contentFile)
+        {
+            if (this._disposed)
+            {
+                throw new ObjectDisposedException("stream");
+            }
+            if (contentFile is null)
+            {
+                throw new ArgumentNullException(nameof(contentFile));
+            }
+
+            if (int.TryParse(contentFile.Source, out int index) && index < this._palmDBRecordList.Count)
+            {
+                byte[] bytes = this.ReadPalmDBRecord(this._palmDBRecordList[index]);
+                if (bytes != null)
+                {
+                    return new MemoryStream(bytes);
+                }
+            }
+            return null;
+        }
+
         #region Structure
 
         private Structure ReadStructure()
@@ -293,14 +315,14 @@ namespace Roler.Toolkit.File.Mobi
 
         #region Cover
 
-        private byte[] ReadCover(Structure structure)
+        private ContentFile ReadCover(Structure structure)
         {
             if (structure is null)
             {
                 throw new ArgumentNullException(nameof(structure));
             }
 
-            byte[] result = null;
+            ContentFile result = null;
             if (structure.MobiHeader != null &&
                 structure.MobiHeader.FirstImageIndex != MobiHeaderEngine.UnavailableIndex &&
                 structure.MobiHeader.FirstImageIndex < this._palmDBRecordList.Count &&
@@ -313,7 +335,7 @@ namespace Roler.Toolkit.File.Mobi
                     var coverImageIndex = structure.MobiHeader.FirstImageIndex + coverOffsetBytes.ToUInt32();
                     if (coverImageIndex < this._palmDBRecordList.Count)
                     {
-                        result = this.ReadPalmDBRecord(this._palmDBRecordList[(int)coverImageIndex]);
+                        result = new ContentFile(String.Empty, coverImageIndex.ToString());
                     }
                 }
             }
