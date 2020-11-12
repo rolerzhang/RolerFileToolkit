@@ -117,9 +117,14 @@ namespace Roler.Toolkit.File.Mobi
             var decompressedByteList = new List<byte>();
             ICompression compression = null;
             Encoding encoding = Encoding.UTF8;
+            ushort maxRecordSize = 4096;
 
             if (structure.PalmDOCHeader != null)
             {
+                if (structure.PalmDOCHeader.RecordSize > 0)
+                {
+                    maxRecordSize = structure.PalmDOCHeader.RecordSize;
+                }
                 switch (structure.PalmDOCHeader.Compression)
                 {
                     case CompressionType.PalmDOC:
@@ -130,21 +135,28 @@ namespace Roler.Toolkit.File.Mobi
                     case CompressionType.HUFF_CDIC:
                         {
                             compression = CreateHuffCdicCompression(structure.MobiHeader);
-                            encoding = Encoding.ASCII;
                         }
                         break;
-                    default: break;
+                    default:
+                        {
+                            compression = new NoneCompression();
+                        }
+                        break;
                 }
             }
 
-            if (compression != null && structure.MobiHeader != null)
+            if (structure.MobiHeader != null)
             {
-                long firstNonTextRecordIndex = this.FindFirstNonTextRecordIndex(structure.MobiHeader);
-                for (int i = structure.MobiHeader.FirstContentRecordOffset; i < firstNonTextRecordIndex; i++)
+                var firstTextRecordIndex = this.FindFirstTextRecordIndex(structure.MobiHeader);
+                var firstNonTextRecordIndex = this.FindFirstNonTextRecordIndex(structure.MobiHeader);
+                for (int i = firstTextRecordIndex; i < firstNonTextRecordIndex; i++)
                 {
                     var recordBytes = this.ReadPalmDBRecord(this._palmDBRecordList[i]);
                     var decompressedBytes = compression.Decompress(recordBytes);
-                    decompressedByteList.AddRange(decompressedBytes);
+                    var fixedDecompressedBytes = decompressedBytes.Length > maxRecordSize ?
+                        decompressedBytes.Take(maxRecordSize) :
+                        decompressedBytes;
+                    decompressedByteList.AddRange(fixedDecompressedBytes);
                 }
             }
 
@@ -261,28 +273,26 @@ namespace Roler.Toolkit.File.Mobi
             if (mobiHeader.HuffmanRecordOffset != MobiHeaderEngine.UnavailableIndex &&
                 mobiHeader.HuffmanRecordOffset < this._palmDBRecordList.Count)
             {
-                var huffBytesData = this.ReadPalmDBRecord(this._palmDBRecordList[(int)mobiHeader.HuffmanRecordOffset]);
-                var huffData = new List<byte>(huffBytesData);
+                var huff = this.ReadPalmDBRecord(this._palmDBRecordList[(int)mobiHeader.HuffmanRecordOffset]);
 
-                var cdicBytesData = this.ReadPalmDBRecord(this._palmDBRecordList[(int)mobiHeader.HuffmanRecordOffset + 1]);
-                var cdicData = new List<byte>(cdicBytesData);
-
-                var huffDicts = new List<IList<byte>>
-                {
-                    cdicData
-                };
-                for (int i = 2; i < mobiHeader.HuffmanRecordCount; i++)
+                var cdicList = new List<byte[]>();
+                for (int i = 1; i < mobiHeader.HuffmanRecordCount; i++)
                 {
                     var recordBytes = this.ReadPalmDBRecord(this._palmDBRecordList[(int)mobiHeader.HuffmanRecordOffset + i]);
-                    huffDicts.Add(new List<byte>(recordBytes));
+                    cdicList.Add(recordBytes);
                 }
 
-                result = new HuffCdicCompression(huffData, cdicData, huffDicts)
+                result = new HuffCdicCompression(huff, cdicList)
                 {
                     ExtraFlags = mobiHeader.ExtraRecordDataFlags
                 };
             }
             return result;
+        }
+
+        private int FindFirstTextRecordIndex(MobiHeader mobiHeader)
+        {
+            return mobiHeader.FirstContentRecordOffset > 0 ? mobiHeader.FirstContentRecordOffset : 1;
         }
 
         private long FindFirstNonTextRecordIndex(MobiHeader mobiHeader)
