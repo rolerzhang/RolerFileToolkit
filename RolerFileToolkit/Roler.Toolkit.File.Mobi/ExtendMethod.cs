@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 
 namespace Roler.Toolkit.File.Mobi
 {
@@ -114,9 +115,35 @@ namespace Roler.Toolkit.File.Mobi
             uint result = 0;
             for (int i = 0; i < length; i++)
             {
-                result |= (uint)bytes[i] << (length - 1 - i) * 8;
+                result |= (uint)bytes[i] << ((length - 1 - i) * 8);
             }
             return result;
+        }
+
+        public static ulong ToUInt64(this byte[] bytes)
+        {
+            if (bytes.Length == 0)
+            {
+                throw new ArgumentException("bytes can not empty.");
+            }
+
+            var length = Math.Min(8, bytes.Length);
+            ulong result = 0;
+            for (int i = 0; i < length; i++)
+            {
+                result |= (ulong)bytes[i] << ((length - 1 - i) * 8);
+            }
+            return result;
+        }
+
+        public static bool RangeEqual(this byte[] bytes, int start, int length, byte[] second)
+        {
+            if (second is null)
+            {
+                throw new ArgumentNullException(nameof(second));
+            }
+
+            return bytes.Skip(start).Take(length).SequenceEqual(second);
         }
     }
 }

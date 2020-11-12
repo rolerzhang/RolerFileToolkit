@@ -1,64 +1,49 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace Roler.Toolkit.File.Mobi.Compression
 {
+    /// <summary>
+    /// HUFF/CDIC compression
+    /// </summary>
     internal class HuffCdicCompression : ICompression
     {
-        private uint _off1;
-        private uint _off2;
-        private uint _entryBits;
-        private uint[] _huffDict1;
-        private uint[] _huffDict2;
+        public readonly static byte[] HuffBytesStart = { 0x48, 0x55, 0x46, 0x46, 0x00, 0x00, 0x00, 0x18 };
+        public readonly static byte[] CdicBytesStart = { 0x43, 0x44, 0x49, 0x43, 0x00, 0x00, 0x00, 0x10 };
 
-        public List<byte> HuffData { get; }
-        public List<byte> CdicData { get; }
-        public IList<IList<byte>> HuffDicts { get; }
+        private readonly List<byte> _huff;
+        private readonly List<byte[]> _cidcList;
+        private readonly IList<Tuple<int, int, uint>> _huffDict1 = new List<Tuple<int, int, uint>>();
+        private readonly IList<uint> _minCodeList = new List<uint>();
+        private readonly IList<uint> _maxCodeList = new List<uint>();
+        private readonly IList<Tuple<IList<byte>, int>> _dictionary = new List<Tuple<IList<byte>, int>>();
+
+        public IReadOnlyList<byte> Huff => this._huff;
+        public IReadOnlyList<byte[]> CdicList => this._cidcList;
         public uint ExtraFlags { get; set; }
 
-        public HuffCdicCompression(List<byte> huffData, List<byte> cdicData, IList<IList<byte>> huffDicts)
+        public HuffCdicCompression()
         {
-            this.HuffData = huffData ?? throw new ArgumentNullException(nameof(huffData));
-            this.CdicData = cdicData ?? throw new ArgumentNullException(nameof(cdicData));
-            this.HuffDicts = huffDicts ?? throw new ArgumentNullException(nameof(huffDicts));
-
-            this.InitMember();
         }
 
-        private void InitMember()
+        public HuffCdicCompression(byte[] huff, IList<byte[]> cdicList)
         {
-            var byteList = new List<byte>();
-
-            byteList.Clear();
-            byteList.AddRange(this.HuffData.GetRange(16, 4));
-            this._off1 = BytesToUint(byteList.ToArray());
-
-            byteList.Clear();
-            byteList.AddRange(this.HuffData.GetRange(20, 4));
-            this._off2 = BytesToUint(byteList.ToArray());
-
-            byteList.Clear();
-            byteList.AddRange(this.CdicData.GetRange(12, 4));
-            this._entryBits = BytesToUint(byteList.ToArray());
-
-            var uintList = new List<uint>();
-            for (int i = 0; i < 256; i++)
+            if (huff is null)
             {
-                byteList.Clear();
-                byteList.AddRange(this.HuffData.GetRange((int)(_off1 + (i * 4)), 4));
-                uintList.Clear();
-                uintList.Add(BitConverter.ToUInt32(byteList.ToArray(), 0));
-                this._huffDict1 = uintList.ToArray();
+                throw new ArgumentNullException(nameof(huff));
             }
-            for (int i = 0; i < 64; i++)
+
+            if (cdicList is null)
             {
-                byteList.Clear();
-                byteList.AddRange(this.HuffData.GetRange((int)(_off2 + (i * 4)), 4));
-                uintList.Clear();
-                uintList.Add(BitConverter.ToUInt32(byteList.ToArray(), 0));
-                this._huffDict2 = uintList.ToArray();
+                throw new ArgumentNullException(nameof(cdicList));
             }
+
+            this._huff = new List<byte>(huff);
+            this._cidcList = new List<byte[]>(cdicList);
+
+            this.InitMember();
         }
 
         public byte[] Compress(byte[] bytes)
@@ -77,92 +62,147 @@ namespace Roler.Toolkit.File.Mobi.Compression
             {
                 throw new ArgumentNullException(nameof(bytes));
             }
-            List<byte> dataTemp = new List<byte>(bytes);
-            int size = GetSizeOfTrailingDataEntries(dataTemp.ToArray(), dataTemp.Count, this.ExtraFlags);
-            return Unpack(new BitReader(dataTemp.GetRange(0, dataTemp.Count - size).ToArray()), 0, this._huffDict1, this._huffDict2, this.HuffDicts, (int)this._entryBits);
+            return this.Unpack(bytes);
         }
 
-        private static uint BytesToUint(byte[] bytes)
+        private void InitMember()
         {
-            return (uint)((bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3]);
-        }
+            this.LoadHuff();
 
-        private static int GetSizeOfTrailingDataEntries(byte[] ptr, int size, uint flags)
-        {
-            int retval = 0;
-            flags >>= 1;
-            while (flags > 0)
+            this._dictionary.Clear();
+            foreach (var cdicBytes in this._cidcList)
             {
-                if ((flags & 1) > 0)
-                {
-                    retval += (int)GetSizeOfTrailingDataEntry(ptr, size - retval);
-                }
-                flags >>= 1;
-            }
-            return retval;
-        }
-
-        private static uint GetSizeOfTrailingDataEntry(byte[] ptr, int size)
-        {
-            uint retval = 0;
-            int bitpos = 0;
-            while (true)
-            {
-                uint v = (char)(ptr[size - 1]);
-                retval |= (v & 0x7F) << bitpos;
-                bitpos += 7;
-                size -= 1;
-                if ((v & 0x80) != 0 || (bitpos >= 28) || (size == 0))
-                {
-                    return retval;
-                }
+                this.LoadOneCdic(cdicBytes);
             }
         }
 
-        private static byte[] Unpack(BitReader bitReader, int depth, uint[] huffDict1, uint[] huffDict2, IList<IList<byte>> huffDicts, int entryBits)
+        private void LoadHuff()
         {
-            List<byte> result = new List<byte>();
+            if (this._huff.GetRange(0, 8).SequenceEqual(HuffBytesStart))
+            {
+                uint off1 = this._huff.GetRange(8, 4).ToArray().ToUInt32();
+                uint off2 = this._huff.GetRange(12, 4).ToArray().ToUInt32();
 
-            if (depth > 32)
-            {
-                throw new Exception("corrupt file");
-            }
-            while (bitReader.IsEnd)
-            {
-                ulong dw = bitReader.Peek(32);
-                uint v = (huffDict1[dw >> 24]);
-                uint codeLen = v & 0x1F;
-                ulong code = dw >> (int)(32 - codeLen);
-                ulong r = (v >> 8);
-                if ((v & 0x80) == 0)
+                this._huffDict1.Clear();
+                for (int i = 0; i < 256; i++)
                 {
-                    while (code < huffDict2[(codeLen - 1) * 2])
+                    uint v = this._huff.GetRange((int)(off1 + (i * 4)), 4).ToArray().ToUInt32();
+                    var codeLength = (int)(v & 0x1f);
+                    var term = (int)(v & 0x80);
+                    uint maxCode = v >> 8;
+
+                    if (codeLength == 0)
                     {
-                        codeLen += 1;
-                        code = dw >> (int)(32 - codeLen);
-                    }
-                    r = huffDict2[(codeLen - 1) * 2 + 1];
-                }
-                r -= code;
-                if (bitReader.Eat(codeLen))
-                {
-                    ulong dicno = r >> entryBits;
-                    ulong off1 = 16 + (r - (dicno << entryBits)) * 2;
-                    IList<byte> dic = huffDicts[(int)(long)dicno];
-                    int off2 = 16 + (char)(dic[(int)((long)off1)]) * 256 + (char)(dic[(int)((long)off1) + 1]);
-                    int blen = ((char)(dic[off2]) * 256 + (char)(dic[off2 + 1]));
-                    List<byte> slicelist = dic.ToList().GetRange(off2 + 2, blen & 0x7fff);
-                    byte[] slice = slicelist.ToArray();
-                    if ((blen & 0x8000) > 0)
-                    {
-                        result.AddRange(slice);
+                        throw new InvalidDataException("invalid data: Huff");
                     }
                     else
                     {
-                        result.AddRange(Unpack(new BitReader(slice), depth + 1, huffDict1, huffDict2, huffDicts, entryBits));
+                        maxCode = ((maxCode + 1) << (32 - codeLength)) - 1;
+                    }
+                    this._huffDict1.Add(new Tuple<int, int, uint>(codeLength, term, maxCode));
+                }
+
+                this._minCodeList.Clear();
+                this._maxCodeList.Clear();
+
+                this._minCodeList.Add(uint.MinValue);
+                this._maxCodeList.Add(uint.MaxValue);
+                for (int i = 0; i < 64; i++)
+                {
+                    var v = this._huff.GetRange((int)(off2 + (i * 4)), 4).ToArray().ToUInt32();
+                    var step = 32 - i / 2 - 1;
+                    if (i % 2 == 0)
+                    {
+                        this._minCodeList.Add(v << step);
+                    }
+                    else
+                    {
+                        this._maxCodeList.Add(((v + 1) << step) - 1);
                     }
                 }
             }
+        }
+
+        private void LoadOneCdic(byte[] cdicBytes)
+        {
+            if (cdicBytes is null)
+            {
+                throw new ArgumentNullException(nameof(cdicBytes));
+            }
+            if (cdicBytes.RangeEqual(0, 8, CdicBytesStart))
+            {
+                var phrases = cdicBytes.Skip(8).Take(4).ToArray().ToUInt32();
+                var bits = cdicBytes.Skip(12).Take(4).ToArray().ToUInt32();
+
+                var n = Math.Min(1 << (int)bits, phrases - this._dictionary.Count);
+                for (int i = 0; i < n; i++)
+                {
+                    var off = cdicBytes.Skip(16 + (i * 2)).Take(2).ToArray().ToUInt16();
+                    var blen = cdicBytes.Skip(16 + off).Take(2).ToArray().ToUInt16();
+                    var length = 18 + off + (blen & 0x7fff);
+                    var sliceByteList = new List<byte>();
+                    for (int j = 18 + off; j < length; j++)
+                    {
+                        sliceByteList.Add(cdicBytes[j]);
+                    }
+                    this._dictionary.Add(new Tuple<IList<byte>, int>(sliceByteList, blen & 0x8000));
+                }
+            }
+        }
+
+        private byte[] Unpack(byte[] bytes)
+        {
+            var bitsLeft = bytes.Length * 8;
+            var data = new List<byte>(bytes);
+            data.AddRange(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 });
+            var pos = 0;
+            var x = data.GetRange(pos, 8).ToArray().ToUInt64();
+            var n = 32;
+            var result = new List<byte>();
+
+            while (true)
+            {
+                if (n <= 0)
+                {
+                    pos += 4;
+                    x = data.GetRange(pos, 8).ToArray().ToUInt64();
+                    n += 32;
+                }
+
+                var code = (uint)((x >> n) & 0xFFFFFFFF);
+                var tuple = this._huffDict1[(int)(code >> 24)];
+                var codeLength = tuple.Item1;
+                var maxCode = tuple.Item3;
+                if (tuple.Item2 <= 0)
+                {
+                    while (code < this._minCodeList[codeLength])
+                    {
+                        codeLength++;
+                    }
+
+                    maxCode = this._maxCodeList[codeLength];
+                }
+
+                n -= codeLength;
+                bitsLeft -= codeLength;
+                if (bitsLeft < 0)
+                    break;
+
+                var r = (int)((maxCode - code) >> (32 - codeLength));
+                var tuple2 = this._dictionary[r];
+                var sliceList = tuple2.Item1;
+                if (tuple2.Item2 <= 0)
+                {
+                    this._dictionary.RemoveAt(r);
+                    this._dictionary.Insert(r, null);
+                    sliceList = this.Unpack(sliceList.ToArray());
+                    this._dictionary.RemoveAt(r);
+                    this._dictionary.Insert(r, new Tuple<IList<byte>, int>(sliceList, 1));
+                }
+
+                result.AddRange(sliceList);
+            }
+
             return result.ToArray();
         }
     }
