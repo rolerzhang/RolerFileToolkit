@@ -77,10 +77,10 @@ namespace Roler.Toolkit.File.Mobi
             return result;
         }
 
-        public Mobi Read()
+        public Mobi Read(MobiReadingConfiguration configuration = null)
         {
             var result = this.ReadWithoutText();
-            result.Text = this.ReadText(result.Structure);
+            result.Text = this.ReadText(result.Structure, configuration);
 
             return result;
         }
@@ -103,7 +103,7 @@ namespace Roler.Toolkit.File.Mobi
             return result;
         }
 
-        public string ReadText(Structure structure)
+        public string ReadText(Structure structure, MobiReadingConfiguration configuration = null)
         {
             if (this._disposed)
             {
@@ -113,6 +113,7 @@ namespace Roler.Toolkit.File.Mobi
             {
                 throw new ArgumentNullException(nameof(structure));
             }
+            configuration = configuration ?? new MobiReadingConfiguration();
 
             var decompressedByteList = new List<byte>();
             ICompression compression = null;
@@ -147,8 +148,8 @@ namespace Roler.Toolkit.File.Mobi
 
             if (structure.MobiHeader != null)
             {
-                var firstTextRecordIndex = this.FindFirstTextRecordIndex(structure.MobiHeader);
-                var firstNonTextRecordIndex = this.FindFirstNonTextRecordIndex(structure.MobiHeader);
+                var firstTextRecordIndex = configuration.FindFirstTextRecordIndex(structure.MobiHeader);
+                var firstNonTextRecordIndex = configuration.FindFirstNonTextRecordIndex(structure.MobiHeader, this._palmDBRecordList.Count);
                 for (int i = firstTextRecordIndex; i < firstNonTextRecordIndex; i++)
                 {
                     var recordBytes = this.ReadPalmDBRecord(this._palmDBRecordList[i]);
@@ -286,29 +287,6 @@ namespace Roler.Toolkit.File.Mobi
                 {
                     ExtraFlags = mobiHeader.ExtraRecordDataFlags
                 };
-            }
-            return result;
-        }
-
-        private int FindFirstTextRecordIndex(MobiHeader mobiHeader)
-        {
-            return mobiHeader.FirstContentRecordOffset > 0 ? mobiHeader.FirstContentRecordOffset : 1;
-        }
-
-        private long FindFirstNonTextRecordIndex(MobiHeader mobiHeader)
-        {
-            long result;
-            if (mobiHeader.FirstNonBookIndex != MobiHeaderEngine.UnavailableIndex &&
-                mobiHeader.FirstNonBookIndex < this._palmDBRecordList.Count)
-            {
-                result = mobiHeader.FirstNonBookIndex;
-            }
-            else
-            {
-                result = Math.Min(mobiHeader.LastContentRecordOffset, mobiHeader.INDXRecordOffset);
-                result = Math.Min(result, mobiHeader.FLISRecordOffset);
-                result = Math.Min(result, mobiHeader.FCISRecordOffset);
-                result = Math.Min(result, this._palmDBRecordList.Count);
             }
             return result;
         }
