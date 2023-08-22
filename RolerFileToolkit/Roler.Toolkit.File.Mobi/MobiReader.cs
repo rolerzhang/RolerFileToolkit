@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using Roler.Toolkit.File.Mobi.Compression;
 using Roler.Toolkit.File.Mobi.Engine;
@@ -24,6 +25,7 @@ namespace Roler.Toolkit.File.Mobi
 
         public Mobi ReadWithoutText()
         {
+
             if (this._disposed)
             {
                 throw new ObjectDisposedException("stream");
@@ -77,10 +79,10 @@ namespace Roler.Toolkit.File.Mobi
             return result;
         }
 
-        public Mobi Read()
+        public Mobi Read(bool isExistAid)
         {
             var result = this.ReadWithoutText();
-            result.Text = this.ReadText(result.Structure);
+            result.Text = this.ReadText(result.Structure, isExistAid);
 
             return result;
         }
@@ -91,7 +93,7 @@ namespace Roler.Toolkit.File.Mobi
 
             try
             {
-                mobi = this.Read();
+                mobi = this.Read(false);
                 result = true;
             }
             catch (Exception)
@@ -103,7 +105,7 @@ namespace Roler.Toolkit.File.Mobi
             return result;
         }
 
-        public string ReadText(Structure structure)
+        public string ReadText(Structure structure, bool isExistAid)
         {
             if (this._disposed)
             {
@@ -147,16 +149,34 @@ namespace Roler.Toolkit.File.Mobi
 
             if (structure.MobiHeader != null)
             {
-                var firstTextRecordIndex = this.FindFirstTextRecordIndex(structure.MobiHeader);
-                var firstNonTextRecordIndex = this.FindFirstNonTextRecordIndex(structure.MobiHeader);
-                for (int i = firstTextRecordIndex; i < firstNonTextRecordIndex; i++)
+                //存在aid
+                if (isExistAid)
                 {
-                    var recordBytes = this.ReadPalmDBRecord(this._palmDBRecordList[i]);
-                    var decompressedBytes = compression.Decompress(recordBytes);
-                    var fixedDecompressedBytes = decompressedBytes.Length > maxRecordSize ?
-                        decompressedBytes.Take(maxRecordSize) :
-                        decompressedBytes;
-                    decompressedByteList.AddRange(fixedDecompressedBytes);
+                    var firstTextRecordIndex = this.FindFirstTextRecordIndex(structure.MobiHeader);
+                    var firstNonTextRecordIndex = this.FindFirstNonTextRecordIndex(structure.MobiHeader);
+                    for (int i = firstTextRecordIndex; i < firstNonTextRecordIndex; i++)
+                    {
+                        var recordBytes = this.ReadPalmDBRecord(this._palmDBRecordList[i]);
+                        var decompressedBytes = compression.Decompress(recordBytes);
+                        var fixedDecompressedBytes = decompressedBytes.Length > maxRecordSize ?
+                            decompressedBytes.Take(maxRecordSize) :
+                            decompressedBytes;
+                        decompressedByteList.AddRange(fixedDecompressedBytes);
+                    }
+                }
+                else
+                {
+                    var firstTextRecordIndex = this.FindFirstTextRecordIndexAid(structure.MobiHeader);
+                    var firstNonTextRecordIndex = this.FindFirstNonTextRecordIndexAid(structure.MobiHeader);
+                    for (int i = firstTextRecordIndex; i < firstNonTextRecordIndex; i++)
+                    {
+                        var recordBytes = this.ReadPalmDBRecord(this._palmDBRecordList[i]);
+                        var decompressedBytes = compression.Decompress(recordBytes);
+                        var fixedDecompressedBytes = decompressedBytes.Length > maxRecordSize ?
+                            decompressedBytes.Take(maxRecordSize) :
+                            decompressedBytes;
+                        decompressedByteList.AddRange(fixedDecompressedBytes);
+                    }
                 }
             }
 
@@ -292,10 +312,33 @@ namespace Roler.Toolkit.File.Mobi
 
         private int FindFirstTextRecordIndex(MobiHeader mobiHeader)
         {
-            return mobiHeader.FirstContentRecordOffset > 0 ? mobiHeader.FirstContentRecordOffset : 1;
+            return (int)mobiHeader.LastContentRecordOffset + 5;
         }
 
         private long FindFirstNonTextRecordIndex(MobiHeader mobiHeader)
+        {
+            long result;
+            if (mobiHeader.FirstNonBookIndex != MobiHeaderEngine.UnavailableIndex &&
+                mobiHeader.FirstNonBookIndex < this._palmDBRecordList.Count)
+            {
+                result = this._palmDBRecordList.Count;
+            }
+            else
+            {
+                result = Math.Min(mobiHeader.LastContentRecordOffset, mobiHeader.INDXRecordOffset);
+                result = Math.Min(result, mobiHeader.FLISRecordOffset);
+                result = Math.Min(result, mobiHeader.FCISRecordOffset);
+                result = Math.Min(result, this._palmDBRecordList.Count);
+            }
+            return result;
+        }
+
+        private int FindFirstTextRecordIndexAid(MobiHeader mobiHeader)
+        {
+            return mobiHeader.FirstContentRecordOffset > 0 ? mobiHeader.FirstContentRecordOffset : 1;
+        }
+
+        private long FindFirstNonTextRecordIndexAid(MobiHeader mobiHeader)
         {
             long result;
             if (mobiHeader.FirstNonBookIndex != MobiHeaderEngine.UnavailableIndex &&
