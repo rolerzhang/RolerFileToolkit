@@ -104,6 +104,11 @@ namespace Roler.Toolkit.File.Mobi
             return result;
         }
 
+        public static ushort ToUInt16(this byte[] bytes, int offset)
+        {
+            return (ushort)((bytes[offset] << 8) | bytes[offset + 1]);
+        }
+
         public static uint ToUInt32(this byte[] bytes)
         {
             if (bytes.Length == 0)
@@ -118,6 +123,11 @@ namespace Roler.Toolkit.File.Mobi
                 result |= (uint)bytes[i] << ((length - 1 - i) * 8);
             }
             return result;
+        }
+
+        public static uint ToUInt32(this byte[] bytes, int offset)
+        {
+            return (uint)((bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3]);
         }
 
         public static ulong ToUInt64(this byte[] bytes)
@@ -136,6 +146,14 @@ namespace Roler.Toolkit.File.Mobi
             return result;
         }
 
+        public static ulong ToUInt64(this byte[] bytes, int offset)
+        {
+            return ((ulong)bytes[offset] << 56) | ((ulong)bytes[offset + 1] << 48) |
+                   ((ulong)bytes[offset + 2] << 40) | ((ulong)bytes[offset + 3] << 32) |
+                   ((ulong)bytes[offset + 4] << 24) | ((ulong)bytes[offset + 5] << 16) |
+                   ((ulong)bytes[offset + 6] << 8) | bytes[offset + 7];
+        }
+
         public static bool RangeEqual(this byte[] bytes, int start, int length, byte[] second)
         {
             if (second is null)
@@ -143,7 +161,18 @@ namespace Roler.Toolkit.File.Mobi
                 throw new ArgumentNullException(nameof(second));
             }
 
-            return bytes.Skip(start).Take(length).SequenceEqual(second);
+            if (length != second.Length || start + length > bytes.Length)
+            {
+                return false;
+            }
+            for (int i = 0; i < length; i++)
+            {
+                if (bytes[start + i] != second[i])
+                {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }

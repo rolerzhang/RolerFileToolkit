@@ -330,10 +330,18 @@ namespace Roler.Toolkit.File.Epub
         {
             if (readingFiles != null && package != null && package.Spine != null && package.Manifest != null)
             {
+                var manifestDict = new Dictionary<string, ManifestItem>(package.Manifest.Items.Count);
+                foreach (var item in package.Manifest.Items)
+                {
+                    if (item.Id != null)
+                    {
+                        manifestDict[item.Id] = item;
+                    }
+                }
+
                 foreach (var spineItem in package.Spine.Items)
                 {
-                    var manifestItem = package.Manifest.Items.FirstOrDefault(p => p.Id == spineItem.IdRef);
-                    if (manifestItem != null)
+                    if (spineItem.IdRef != null && manifestDict.TryGetValue(spineItem.IdRef, out var manifestItem))
                     {
                         readingFiles.Add(new ContentFile(manifestItem.MediaType, PathHelper.Combine(opfDirectory, manifestItem.Href)));
                     }

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Roler.Toolkit.File.Mobi.Compression
 {
@@ -40,21 +39,20 @@ namespace Roler.Toolkit.File.Mobi.Compression
                 throw new ArgumentNullException(nameof(bytes));
             }
 
-            IList<byte> blockBuilder = new List<byte>();
-            IList<byte> dataTemp = new List<byte>(bytes) { 0 };
+            var blockBuilder = new List<byte>(BlockSize);
+            int dataLength = bytes.Length;
             int pos = 0;
-            IList<byte> temps = new List<byte>();
 
-            while (pos < dataTemp.Count && blockBuilder.Count < BlockSize)
+            while (pos < dataLength && blockBuilder.Count < BlockSize)
             {
-                byte ab = dataTemp[pos++];
+                byte ab = bytes[pos++];
                 if (ab == 0x00 || (ab >= 0x09 && ab <= 0x7f))
                 {
                     blockBuilder.Add(ab);
                 }
                 else if (ab >= 0x01 && ab <= 0x08)
                 {
-                    if (pos + ab > dataTemp.Count)
+                    if (pos + ab > dataLength)
                     {
                         //invaild data, not enough to copy.
                         blockBuilder.Clear();
@@ -62,25 +60,13 @@ namespace Roler.Toolkit.File.Mobi.Compression
                     }
                     for (byte i = 0; i < ab; i++)
                     {
-                        blockBuilder.Add(dataTemp[pos++]);
+                        blockBuilder.Add(bytes[pos++]);
                     }
                 }
                 else if (ab >= 0x80 && ab <= 0xbf)
                 {
-                    temps.Clear();
-                    temps.Add(0);
-                    temps.Add(0);
-                    temps.Add((byte)(ab & 0x3f));
-                    if (pos < dataTemp.Count)
-                    {
-                        temps.Add(dataTemp[pos++]);
-                    }
-                    else
-                    {
-                        temps.Add(0);
-                    }
-
-                    uint b = BytesToUint(temps.ToArray());
+                    byte nextByte = (pos < dataLength) ? bytes[pos++] : (byte)0;
+                    uint b = (uint)(((ab & 0x3f) << 8) | nextByte);
                     uint dist = b >> 3;
                     int uncompressedPos = blockBuilder.Count - ((int)dist);
                     if (uncompressedPos >= 0 && dist != 0)
@@ -105,11 +91,6 @@ namespace Roler.Toolkit.File.Mobi.Compression
                 }
             }
             return blockBuilder.ToArray();
-        }
-
-        private static uint BytesToUint(byte[] bytes)
-        {
-            return (uint)((bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3]);
         }
     }
 }

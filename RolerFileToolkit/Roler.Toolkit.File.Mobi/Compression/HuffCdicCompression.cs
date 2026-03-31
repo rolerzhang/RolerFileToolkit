@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace Roler.Toolkit.File.Mobi.Compression
 {
@@ -13,12 +12,12 @@ namespace Roler.Toolkit.File.Mobi.Compression
         public readonly static byte[] HuffBytesStart = { 0x48, 0x55, 0x46, 0x46, 0x00, 0x00, 0x00, 0x18 };
         public readonly static byte[] CdicBytesStart = { 0x43, 0x44, 0x49, 0x43, 0x00, 0x00, 0x00, 0x10 };
 
-        private readonly List<byte> _huff;
+        private readonly byte[] _huff;
         private readonly List<byte[]> _cidcList;
         private readonly IList<Tuple<int, int, uint>> _huffDict1 = new List<Tuple<int, int, uint>>();
         private readonly IList<uint> _minCodeList = new List<uint>();
         private readonly IList<uint> _maxCodeList = new List<uint>();
-        private readonly IList<Tuple<IList<byte>, int>> _dictionary = new List<Tuple<IList<byte>, int>>();
+        private readonly IList<Tuple<byte[], int>> _dictionary = new List<Tuple<byte[], int>>();
 
         public IReadOnlyList<byte> Huff => this._huff;
         public IReadOnlyList<byte[]> CdicList => this._cidcList;
@@ -40,7 +39,7 @@ namespace Roler.Toolkit.File.Mobi.Compression
                 throw new ArgumentNullException(nameof(cdicList));
             }
 
-            this._huff = new List<byte>(huff);
+            this._huff = (byte[])huff.Clone();
             this._cidcList = new List<byte[]>(cdicList);
 
             this.InitMember();
@@ -78,15 +77,15 @@ namespace Roler.Toolkit.File.Mobi.Compression
 
         private void LoadHuff()
         {
-            if (this._huff.GetRange(0, 8).SequenceEqual(HuffBytesStart))
+            if (this._huff.RangeEqual(0, 8, HuffBytesStart))
             {
-                uint off1 = this._huff.GetRange(8, 4).ToArray().ToUInt32();
-                uint off2 = this._huff.GetRange(12, 4).ToArray().ToUInt32();
+                uint off1 = this._huff.ToUInt32(8);
+                uint off2 = this._huff.ToUInt32(12);
 
                 this._huffDict1.Clear();
                 for (int i = 0; i < 256; i++)
                 {
-                    uint v = this._huff.GetRange((int)(off1 + (i * 4)), 4).ToArray().ToUInt32();
+                    uint v = this._huff.ToUInt32((int)(off1 + (i * 4)));
                     var codeLength = (int)(v & 0x1f);
                     var term = (int)(v & 0x80);
                     uint maxCode = v >> 8;
@@ -109,7 +108,7 @@ namespace Roler.Toolkit.File.Mobi.Compression
                 this._maxCodeList.Add(uint.MaxValue);
                 for (int i = 0; i < 64; i++)
                 {
-                    var v = this._huff.GetRange((int)(off2 + (i * 4)), 4).ToArray().ToUInt32();
+                    var v = this._huff.ToUInt32((int)(off2 + (i * 4)));
                     var step = 32 - i / 2 - 1;
                     if (i % 2 == 0)
                     {
@@ -131,21 +130,19 @@ namespace Roler.Toolkit.File.Mobi.Compression
             }
             if (cdicBytes.RangeEqual(0, 8, CdicBytesStart))
             {
-                var phrases = cdicBytes.Skip(8).Take(4).ToArray().ToUInt32();
-                var bits = cdicBytes.Skip(12).Take(4).ToArray().ToUInt32();
+                var phrases = cdicBytes.ToUInt32(8);
+                var bits = cdicBytes.ToUInt32(12);
 
                 var n = Math.Min(1 << (int)bits, phrases - this._dictionary.Count);
                 for (int i = 0; i < n; i++)
                 {
-                    var off = cdicBytes.Skip(16 + (i * 2)).Take(2).ToArray().ToUInt16();
-                    var blen = cdicBytes.Skip(16 + off).Take(2).ToArray().ToUInt16();
-                    var length = 18 + off + (blen & 0x7fff);
-                    var sliceByteList = new List<byte>();
-                    for (int j = 18 + off; j < length; j++)
-                    {
-                        sliceByteList.Add(cdicBytes[j]);
-                    }
-                    this._dictionary.Add(new Tuple<IList<byte>, int>(sliceByteList, blen & 0x8000));
+                    var off = cdicBytes.ToUInt16(16 + (i * 2));
+                    var blen = cdicBytes.ToUInt16(16 + off);
+                    var sliceLength = blen & 0x7fff;
+                    int sliceStart = 18 + off;
+                    var sliceBytes = new byte[sliceLength];
+                    Array.Copy(cdicBytes, sliceStart, sliceBytes, 0, sliceLength);
+                    this._dictionary.Add(new Tuple<byte[], int>(sliceBytes, blen & 0x8000));
                 }
             }
         }
@@ -153,10 +150,10 @@ namespace Roler.Toolkit.File.Mobi.Compression
         private byte[] Unpack(byte[] bytes)
         {
             var bitsLeft = bytes.Length * 8;
-            var data = new List<byte>(bytes);
-            data.AddRange(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 });
+            var data = new byte[bytes.Length + 8];
+            Buffer.BlockCopy(bytes, 0, data, 0, bytes.Length);
             var pos = 0;
-            var x = data.GetRange(pos, 8).ToArray().ToUInt64();
+            var x = data.ToUInt64(pos);
             var n = 32;
             var result = new List<byte>();
 
@@ -165,7 +162,7 @@ namespace Roler.Toolkit.File.Mobi.Compression
                 if (n <= 0)
                 {
                     pos += 4;
-                    x = data.GetRange(pos, 8).ToArray().ToUInt64();
+                    x = data.ToUInt64(pos);
                     n += 32;
                 }
 
@@ -193,11 +190,9 @@ namespace Roler.Toolkit.File.Mobi.Compression
                 var sliceList = tuple2.Item1;
                 if (tuple2.Item2 <= 0)
                 {
-                    this._dictionary.RemoveAt(r);
-                    this._dictionary.Insert(r, null);
-                    sliceList = this.Unpack(sliceList.ToArray());
-                    this._dictionary.RemoveAt(r);
-                    this._dictionary.Insert(r, new Tuple<IList<byte>, int>(sliceList, 1));
+                    this._dictionary[r] = null;
+                    sliceList = this.Unpack(sliceList);
+                    this._dictionary[r] = new Tuple<byte[], int>(sliceList, 1);
                 }
 
                 result.AddRange(sliceList);
