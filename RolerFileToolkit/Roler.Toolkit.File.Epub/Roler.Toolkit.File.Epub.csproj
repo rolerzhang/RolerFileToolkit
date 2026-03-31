@@ -5,7 +5,7 @@
     <Authors>RolerZhang</Authors>
     <PackageId>Roler.Toolkit.File.Epub</PackageId>
     <PackageTags>epub</PackageTags>
-    <Description>.NET Standard Class Library for Epub File. support EPUB 3.0</Description>
+    <Description>.NET Standard Class Library for Epub File. support EPUB 3.3</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/rolerzhang/RolerFileToolkit</PackageProjectUrl>
     <RepositoryUrl></RepositoryUrl>

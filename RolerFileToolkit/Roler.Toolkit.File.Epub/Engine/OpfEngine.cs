@@ -56,6 +56,9 @@ namespace Roler.Toolkit.File.Epub.Engine
         public const string ATTRIBUTE_PAGEPROGRESSIONDIRECTION = "page-progression-direction";
         public const string ATTRIBUTE_IDREF = "idref";
         public const string ATTRIBUTE_LINEAR = "linear";
+        public const string ATTRIBUTE_HREFLANG = "hreflang";
+        public const string ATTRIBUTE_ROLE = "role";
+        public const string ELEMENT_COLLECTION = "collection";
 
         #endregion
 
@@ -81,6 +84,15 @@ namespace Roler.Toolkit.File.Epub.Engine
                 var spineElement = document.Element(xNamespace + ELEMENT_SPINE);
                 var spine = ParseSpine(spineElement);
                 result.Spine = spine ?? throw new InvalidDataException("invalid data of opf file: spine");
+
+                foreach (var collectionElement in document.Elements(xNamespace + ELEMENT_COLLECTION))
+                {
+                    var collection = ParseCollection(collectionElement);
+                    if (collection != null)
+                    {
+                        result.Collections.Add(collection);
+                    }
+                }
             }
             return result;
         }
@@ -174,14 +186,7 @@ namespace Roler.Toolkit.File.Epub.Engine
                                 break;
                             case ELEMENT_LINK:
                                 {
-                                    var linkElement = new LinkElement
-                                    {
-                                        Href = childElement.Attribute(ATTRIBUTE_HREF)?.Value,
-                                        Rel = childElement.Attribute(ATTRIBUTE_REL)?.Value,
-                                        Id = childElement.Attribute(ATTRIBUTE_ID)?.Value,
-                                        Refines = childElement.Attribute(ATTRIBUTE_REFINES)?.Value,
-                                        MediaType = childElement.Attribute(ATTRIBUTE_MEDIATYPE)?.Value,
-                                    };
+                                    var linkElement = ParseLink(childElement);
                                     result.Links.Add(linkElement);
                                 }
                                 break;
@@ -251,6 +256,77 @@ namespace Roler.Toolkit.File.Epub.Engine
                     }
                 }
             }
+            return result;
+        }
+
+        private static LinkElement ParseLink(XElement element)
+        {
+            if (element == null)
+            {
+                return null;
+            }
+
+            return new LinkElement
+            {
+                Href = element.Attribute(ATTRIBUTE_HREF)?.Value,
+                Rel = element.Attribute(ATTRIBUTE_REL)?.Value,
+                Id = element.Attribute(ATTRIBUTE_ID)?.Value,
+                Refines = element.Attribute(ATTRIBUTE_REFINES)?.Value,
+                MediaType = element.Attribute(ATTRIBUTE_MEDIATYPE)?.Value,
+                Properties = element.Attribute(ATTRIBUTE_PROPERTIES)?.Value,
+                Hreflang = element.Attribute(ATTRIBUTE_HREFLANG)?.Value,
+            };
+        }
+
+        private static Collection ParseCollection(XElement element)
+        {
+            Collection result = null;
+
+            if (element != null && element.Name.LocalName == ELEMENT_COLLECTION)
+            {
+                var xNamespace = element.GetDefaultNamespace();
+
+                result = new Collection
+                {
+                    Role = element.Attribute(ATTRIBUTE_ROLE)?.Value,
+                    Dir = element.Attribute(ATTRIBUTE_DIR)?.Value,
+                    Id = element.Attribute(ATTRIBUTE_ID)?.Value,
+                    Language = element.Attribute(Const.ATTRIBUTE_LANGUAGE)?.Value,
+                };
+
+                var metadataElement = element.Element(xNamespace + ELEMENT_METADATA);
+                if (metadataElement != null)
+                {
+                    result.Metadata = ParseMetadata(metadataElement);
+                }
+
+                foreach (var childElement in element.Elements())
+                {
+                    switch (childElement.Name.LocalName)
+                    {
+                        case ELEMENT_COLLECTION:
+                            {
+                                var childCollection = ParseCollection(childElement);
+                                if (childCollection != null)
+                                {
+                                    result.Collections.Add(childCollection);
+                                }
+                            }
+                            break;
+                        case ELEMENT_LINK:
+                            {
+                                var linkElement = ParseLink(childElement);
+                                if (linkElement != null)
+                                {
+                                    result.Links.Add(linkElement);
+                                }
+                            }
+                            break;
+                        default: break;
+                    }
+                }
+            }
+
             return result;
         }
     }
